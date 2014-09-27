@@ -1,19 +1,20 @@
 
-#include <assert.h>
+#include <cassert>
 #include <errno.h>
 #include <dirent.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <unistd.h>
 #include <sqlite3.h>
 #include <glib.h>
-#include <string.h>
+#include <cstring>
 #include <QString>
 #include <string>
 #include <jansson.h>
 
 #if defined(Q_WS_MAC)
     #include <sys/sysctl.h>
+    #include "utils-mac.h"
 #elif defined(Q_WS_WIN)
     #include <windows.h>
     #include <psapi.h>
@@ -24,6 +25,8 @@
 #include <QDebug>
 #include <QDateTime>
 #include <QCryptographicHash>
+#include <QSslCipher>
+#include <QSslCertificate>
 
 #include "seafile-applet.h"
 
@@ -126,7 +129,7 @@ int sqlite_foreach_selected_row (sqlite3 *db, const char *sql,
 
 int checkdir_with_mkdir (const char *dir)
 {
-#ifdef WIN32
+#if defined(Q_WS_WIN)
     int ret;
     char *path = g_strdup(dir);
     char *p = (char *)path + strlen(path) - 1;
@@ -263,6 +266,15 @@ set_seafile_auto_start(bool /* on */)
 
 #endif
 
+int
+set_seafile_dock_icon_style(bool hidden)
+{
+#if defined(Q_WS_MAC)
+    __mac_setDockIconStyle(hidden);
+#endif
+    return 0;
+}
+
 bool parse_key_value_pairs (char *string, KeyValueFunc func, void *data)
 {
     char *line = string, *next, *space;
@@ -395,4 +407,93 @@ QString readableFileSize(qint64 size)
 QString md5(const QString& s)
 {
     return QCryptographicHash::hash(s.toUtf8(), QCryptographicHash::Md5).toHex();
+}
+
+QUrl urlJoin(const QUrl& head, const QString& tail)
+{
+    QString a = head.toString();
+    QString b = tail;
+
+    if (!a.endsWith("/")) {
+        a += "/";
+    }
+    while (b.startsWith("/")) {
+        b = b.right(1);
+    }
+    return QUrl(a + b);
+}
+
+QString dumpHexPresentation(const QByteArray &bytes)
+{
+    if (bytes.size() < 2)
+      return QString(bytes).toUpper();
+    QString output((char)bytes[0]);
+    output += (char)bytes[1];
+    for (int i = 2 ; i != bytes.size() ; i++) {
+      if (i % 2 == 0)
+        output += ':';
+      output += (char)bytes[i];
+    }
+    return output.toUpper();
+}
+
+QString dumpCipher(const QSslCipher &cipher)
+{
+    QString s;
+    s += "Authentication:  " + cipher.authenticationMethod() + "\n";
+    s += "Encryption:      " + cipher.encryptionMethod() + "\n";
+    s += "Key Exchange:    " + cipher.keyExchangeMethod() + "\n";
+    s += "Cipher Name:     " + cipher.name() + "\n";
+    s += "Protocol:        " +  cipher.protocolString() + "\n";
+    s += "Supported Bits:  " + QString(cipher.supportedBits()) + "\n";
+    s += "Used Bits:       " + QString(cipher.usedBits()) + "\n";
+    return s;
+}
+
+QString dumpCertificate(const QSslCertificate &cert)
+{
+    if (cert.isNull())
+      return "\n-\n";
+
+    QString s;
+    QString s_none = QObject::tr("<Not Part of Certificate>");
+    #define CERTIFICATE_STR(x) ( ((x) == "" ) ? s_none : (x) )
+
+    s += "\nIssued To\n";
+    s += "CommonName(CN):             " + CERTIFICATE_STR(cert.subjectInfo(QSslCertificate::CommonName)) + "\n";
+    s += "Organization(O):            " + CERTIFICATE_STR(cert.subjectInfo(QSslCertificate::Organization)) + "\n";
+    s += "OrganizationalUnitName(OU): " + CERTIFICATE_STR(cert.subjectInfo(QSslCertificate::OrganizationalUnitName)) + "\n";
+    s += "Serial Number:              " + CERTIFICATE_STR(dumpHexPresentation(cert.serialNumber())) + "\n";
+
+    s += "\nIssued By\n";
+    s += "CommonName(CN):             " + CERTIFICATE_STR(cert.issuerInfo(QSslCertificate::CommonName)) + "\n";
+    s += "Organization(O):            " + CERTIFICATE_STR(cert.issuerInfo(QSslCertificate::Organization)) + "\n";
+    s += "OrganizationalUnitName(OU): " + CERTIFICATE_STR(cert.issuerInfo(QSslCertificate::OrganizationalUnitName)) + "\n";
+
+    s += "\nPeriod Of Validity\n";
+    s += "Begins On:    " + cert.effectiveDate().toString() + "\n";
+    s += "Expires On:   " + cert.expiryDate().toString() + "\n";
+    s += "IsValid:      " + (cert.isValid() ? QString("Yes") : QString("No")) + "\n";
+
+    s += "\nFingerprints\n";
+    s += "SHA1 Fingerprint:\n" + dumpCertificateFingerprint(cert, QCryptographicHash::Sha1) + "\n";
+    s += "MD5 Fingerprint:\n" + dumpCertificateFingerprint(cert, QCryptographicHash::Md5) + "\n";
+
+    return s;
+}
+
+QString dumpCertificateFingerprint(const QSslCertificate &cert, const QCryptographicHash::Algorithm &algorithm)
+{
+    if(cert.isNull())
+      return "";
+    return dumpHexPresentation(cert.digest(algorithm).toHex());
+}
+
+QString dumpSslErrors(const QList<QSslError> &errors)
+{
+    QString s;
+    foreach (const QSslError &error, errors) {
+        s += error.errorString() + "\n";
+    }
+    return s;
 }

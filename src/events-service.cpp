@@ -37,13 +37,16 @@ void EventsService::start()
     refresh_timer_->start(kRefreshEventsInterval);
 }
 
+void EventsService::stop()
+{
+    refresh_timer_->stop();
+}
+
 void EventsService::refresh()
 {
     if (in_refresh_) {
         return;
     }
-
-    AccountManager *account_mgr = seafApplet->accountManager();
 
     const Account& account = seafApplet->accountManager()->currentAccount();
     if (!account.isValid()) {

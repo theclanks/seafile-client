@@ -13,11 +13,12 @@
 namespace {
 
 const char *kHideMainWindowWhenStarted = "hideMainWindowWhenStarted";
+const char *kHideDockIcon = "hideDockIcon";
 const char *kCheckLatestVersion = "checkLatestVersion";
 const char *kBehaviorGroup = "Behavior";
 
-const char *kDefaultLibraryAlreadySetup = "defaultLibraryAlreadySetup";
-const char *kStatusGroup = "Status";
+//const char *kDefaultLibraryAlreadySetup = "defaultLibraryAlreadySetup";
+//const char *kStatusGroup = "Status";
 
 const char *kSettingsGroup = "Settings";
 const char *kComputerName = "computerName";
@@ -31,8 +32,10 @@ SettingsManager::SettingsManager()
       autoStart_(false),
       transferEncrypted_(true),
       allow_invalid_worktree_(false),
+      allow_repo_not_found_on_server_(false),
       maxDownloadRatio_(0),
-      maxUploadRatio_(0)
+      maxUploadRatio_(0),
+      sync_extra_temp_file_(false)
 {
 }
 
@@ -55,6 +58,12 @@ void SettingsManager::loadSettings()
 
     if (seafApplet->rpcClient()->seafileGetConfig("allow_invalid_worktree", &str) >= 0)
         allow_invalid_worktree_ = (str == "true") ? true : false;
+
+    if (seafApplet->rpcClient()->seafileGetConfig("sync_extra_temp_file", &str) >= 0)
+        sync_extra_temp_file_ = (str == "true") ? true : false;
+
+    if (seafApplet->rpcClient()->seafileGetConfig("allow_repo_not_found_on_server", &str) >= 0)
+        allow_repo_not_found_on_server_ = (str == "true") ? true : false;
 
     autoStart_ = get_seafile_auto_start();
 }
@@ -147,6 +156,28 @@ void SettingsManager::setHideMainWindowWhenStarted(bool hide)
     settings.endGroup();
 }
 
+bool SettingsManager::hideDockIcon()
+{
+    QSettings settings;
+    bool hide;
+
+    settings.beginGroup(kBehaviorGroup);
+    hide = settings.value(kHideDockIcon, false).toBool();
+    settings.endGroup();
+    return hide;
+}
+
+void SettingsManager::setHideDockIcon(bool hide)
+{
+    QSettings settings;
+
+    settings.beginGroup(kBehaviorGroup);
+    settings.setValue(kHideDockIcon, hide);
+    settings.endGroup();
+
+    set_seafile_dock_icon_style(hide);
+}
+
 // void SettingsManager::setDefaultLibraryAlreadySetup()
 // {
 //     QSettings settings;
@@ -215,6 +246,31 @@ void SettingsManager::setAllowInvalidWorktree(bool val)
             return;
         }
         allow_invalid_worktree_ = val;
+    }
+}
+
+void SettingsManager::setSyncExtraTempFile(bool sync)
+{
+    if (sync_extra_temp_file_ != sync) {
+        if (seafApplet->rpcClient()->seafileSetConfig(
+                "sync_extra_temp_file",
+                sync ? "true" : "false") < 0) {
+            // Error
+            return;
+        }
+        sync_extra_temp_file_ = sync;
+    }
+}
+
+void SettingsManager::setAllowRepoNotFoundOnServer(bool val)
+{
+    if (allow_repo_not_found_on_server_ != val) {
+        if (seafApplet->rpcClient()->seafileSetConfig("allow_repo_not_found_on_server",
+                                                      val ? "true" : "false") < 0) {
+            // Error
+            return;
+        }
+        allow_repo_not_found_on_server_ = val;
     }
 }
 

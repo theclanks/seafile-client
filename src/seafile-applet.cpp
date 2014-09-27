@@ -25,8 +25,6 @@
 #include "ui/init-vdrive-dialog.h"
 #include "ui/login-dialog.h"
 #include "open-local-helper.h"
-#include "repo-service.h"
-#include "events-service.h"
 #include "avatar-service.h"
 #include "seahub-notifications-monitor.h"
 
@@ -130,8 +128,6 @@ void SeafileApplet::start()
 
     certs_mgr_->start();
 
-    RepoService::instance()->start();
-    EventsService::instance()->start();
     AvatarService::instance()->start();
     SeahubNotificationsMonitor::instance()->start();
 
@@ -154,6 +150,10 @@ void SeafileApplet::onDaemonStarted()
     rpc_client_->connectDaemon();
     message_listener_->connectDaemon();
     seafApplet->settingsManager()->loadSettings();
+
+#if defined(Q_WS_MAC)
+    seafApplet->settingsManager()->setHideDockIcon(seafApplet->settingsManager()->hideDockIcon());
+#endif
 
     if (configurator_->firstUse() || account_mgr_->accounts().size() == 0) {
         LoginDialog login_dialog;
@@ -285,6 +285,22 @@ bool SeafileApplet::yesOrNoBox(const QString& msg, QWidget *parent, bool default
                                  default_btn) == QMessageBox::Yes;
 }
 
+bool SeafileApplet::detailedYesOrNoBox(const QString& msg, const QString& detailed_text, QWidget *parent, bool default_val)
+{
+    QMessageBox *msgBox = new QMessageBox(QMessageBox::Question,
+                       getBrand(),
+                       msg,
+                       QMessageBox::Yes | QMessageBox::No,
+                       parent != 0 ? parent : main_win_);
+    msgBox->setDetailedText(detailed_text);
+    // Turns out the layout box in the QMessageBox is a grid
+    // You can force the resize using a spacer this way:
+    QSpacerItem* horizontalSpacer = new QSpacerItem(400, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
+    QGridLayout* layout = (QGridLayout*)msgBox->layout();
+layout->addItem(horizontalSpacer, layout->rowCount(), 0, 1, layout->columnCount());
+    msgBox->setDefaultButton(default_val ? QMessageBox::Yes : QMessageBox::No);
+    return msgBox->exec() == QMessageBox::Yes;
+}
 
 void SeafileApplet::checkLatestVersionInfo()
 {

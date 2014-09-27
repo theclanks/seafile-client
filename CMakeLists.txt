@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 PROJECT(seafile-client)
-SET(PROJECT_VERSION "3.1.4")
+SET(PROJECT_VERSION "3.1.6")
 ADD_DEFINITIONS(-DSEAFILE_CLIENT_VERSION=${PROJECT_VERSION})
 INCLUDE(FindPkgConfig)
 
@@ -11,7 +11,7 @@ ENDIF()
 
 MESSAGE("Build type: ${CMAKE_BUILD_TYPE}")
 
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+IF (WIN32)
     SET(EXTRA_LIBS ${EXTRA_LIBS} psapi ws2_32 shlwapi)
     SET(EXTRA_SOURCES ${EXTRA_SOURCES} seafile-applet.rc)
     SET(platform_specific_sources
@@ -21,17 +21,17 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     IF (${CMAKE_BUILD_TYPE} MATCHES Release)
       SET(GUI_TYPE WIN32)
     ENDIF()
-ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
     INCLUDE_DIRECTORIES(${QT_QTDBUS_INCLUDE_DIR})
     LINK_DIRECTORIES(${QT_QTDBUS_LIBRARIES})
     SET(EXTRA_LIBS ${EXTRA_LIBS} ${QT_QTDBUS_LIBRARIES})
     SET(platform_specific_sources
       src/utils/process-linux.cpp
     )
-ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+ELSEIF (APPLE)
     SET(platform_specific_sources
       src/utils/process-mac.cpp src/application.cpp
-      src/utils/paint-cocoa.m
+      src/utils/utils-mac.mm
     )
 
     FIND_LIBRARY(COCOA_LIBRARY Cocoa )
@@ -42,7 +42,7 @@ endif()
 ####################
 ###### BEGIN: QT configuration
 ####################
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
   SET(QtDBus "QtDBus")
 ENDIF()
 
@@ -72,6 +72,7 @@ SET(moc_headers
   src/ui/main-window.h
   src/ui/init-seafile-dialog.h
   src/ui/login-dialog.h
+  src/ui/account-settings-dialog.h
   src/ui/create-repo-dialog.h
   src/ui/repo-detail-dialog.h
   src/ui/settings-dialog.h
@@ -91,6 +92,7 @@ SET(moc_headers
   src/ui/account-view.h
   src/ui/seafile-tab-widget.h
   src/ui/tab-view.h
+  src/ui/loading-view.h
   src/ui/repos-tab.h
   src/ui/starred-files-tab.h
   src/ui/starred-files-list-view.h
@@ -112,6 +114,7 @@ ENDIF()
 # UI FILES
 SET(ui_files
   ui/login-dialog.ui
+  ui/account-settings-dialog.ui
   ui/create-repo-dialog.ui
   ui/repo-detail-dialog.ui
   ui/settings-dialog.ui
@@ -175,6 +178,7 @@ PKG_CHECK_MODULES(LIBSEAFILE REQUIRED libseafile>=1.7)
 SET(seafile_client_sources
   src/main.cpp
   src/seafile-applet.cpp
+  src/account.cpp
   src/account-mgr.cpp
   src/ccnet-init.cpp
   src/daemon-mgr.cpp
@@ -203,6 +207,7 @@ SET(seafile_client_sources
   src/ui/main-window.cpp
   src/ui/init-seafile-dialog.cpp
   src/ui/login-dialog.cpp
+  src/ui/account-settings-dialog.cpp
   src/ui/repo-detail-dialog.cpp
   src/ui/settings-dialog.cpp
   src/ui/create-repo-dialog.cpp
@@ -213,7 +218,6 @@ SET(seafile_client_sources
   src/utils/utils.cpp
   src/utils/paint-utils.cpp
   src/utils/file-utils.cpp
-  src/utils/widget-utils.cpp
   src/utils/translate-commit-desc.cpp
   src/utils/uninstall-helpers.cpp
   src/utils/log.c
@@ -232,6 +236,7 @@ SET(seafile_client_sources
   src/ui/account-view.cpp
   src/ui/seafile-tab-widget.cpp
   src/ui/tab-view.cpp
+  src/ui/loading-view.cpp
   src/ui/repos-tab.cpp
   src/ui/starred-files-tab.cpp
   src/ui/starred-files-list-view.cpp
@@ -254,7 +259,7 @@ INCLUDE_DIRECTORIES(
   ${PROJECT_SOURCE_DIR}/third_party/QtAwesome
   ${QT_INCLUDE_DIR}
   ${QT_QTNETWORK_INCLUDE_DIR}
-  ${OPEN_SSL_INCLUDE_DIRS}
+  ${OPENSSL_INCLUDE_DIRS}
   ${SQLITE3_INCLUDE_DIRS}
   ${JANSSON_INCLUDE_DIRS}
   ${LIBSEARPC_INCLUDE_DIRS}
@@ -380,7 +385,7 @@ TARGET_LINK_LIBRARIES(seafile-applet
   ${EXTRA_LIBS}
 )
 
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
   TARGET_LINK_LIBRARIES(seafile-applet
     ${QT_QTDBUS_LIBRARIES}
   )

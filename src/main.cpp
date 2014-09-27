@@ -8,7 +8,7 @@
 #include <QDir>
 
 #include <glib-object.h>
-#include <stdio.h>
+#include <cstdio>
 
 #include "utils/process.h"
 #include "utils/uninstall-helpers.h"
@@ -16,23 +16,17 @@
 #include "seafile-applet.h"
 #include "QtAwesome.h"
 #include "open-local-helper.h"
-#ifdef Q_WS_MAC
-#include "Application.h"
+#if defined(Q_WS_MAC)
+#include "application.h"
 #endif
 
 #define APPNAME "seafile-applet"
-
-namespace {
-
-
-} // namespace
-
 
 int main(int argc, char *argv[])
 {
     int ret = 0;
     char c;
-#ifdef Q_WS_MAC
+#if defined(Q_WS_MAC)
     if ( QSysInfo::MacintoshVersion > QSysInfo::MV_10_8 ) {
         // fix Mac OS X 10.9 (mavericks) font issue
         // https://bugreports.qt-project.org/browse/QTBUG-32789
@@ -47,7 +41,7 @@ int main(int argc, char *argv[])
     g_thread_init(NULL);
 #endif
 
-#ifdef Q_WS_MAC
+#if defined(Q_WS_MAC)
     Application app(argc, argv);
 #else
     QApplication app(argc, argv);
@@ -67,7 +61,7 @@ int main(int argc, char *argv[])
     app.installTranslator(&qtTranslator);
 
     QTranslator myappTranslator;
-#if QT_VERSION >= 0x040800 && not defined(Q_WS_MAC)
+#if QT_VERSION >= 0x040800 && !defined(Q_WS_MAC)
     QLocale loc = QLocale::system();
     QString lang = QLocale::languageToString(loc.language());
 

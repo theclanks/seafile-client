@@ -8,7 +8,7 @@
 #include "account-mgr.h"
 #include "api/requests.h"
 #include "api/starred-file.h"
-#include "utils/widget-utils.h"
+#include "loading-view.h"
 #include "starred-files-list-view.h"
 #include "starred-files-list-model.h"
 #include "starred-file-item-delegate.h"
@@ -46,7 +46,6 @@ StarredFilesTab::StarredFilesTab(QWidget *parent)
 
     refresh_timer_ = new QTimer(this);
     connect(refresh_timer_, SIGNAL(timeout()), this, SLOT(refresh()));
-    refresh_timer_->start(kRefreshInterval);
 
     get_starred_files_req_ = NULL;
 
@@ -64,7 +63,7 @@ void StarredFilesTab::createStarredFilesListView()
 
 void StarredFilesTab::createLoadingView()
 {
-    loading_view_ = ::newLoadingView();
+    loading_view_ = new LoadingView;
 }
 
 void StarredFilesTab::createLoadingFailedView()
@@ -114,7 +113,7 @@ void StarredFilesTab::refresh()
     in_refresh_ = true;
 
     showLoadingView();
-    AccountManager *account_mgr = seafApplet->accountManager();
+    //AccountManager *account_mgr = seafApplet->accountManager();
 
     const std::vector<Account>& accounts = seafApplet->accountManager()->accounts();
     if (accounts.empty()) {
@@ -162,4 +161,14 @@ void StarredFilesTab::refreshStarredFilesFailed(const ApiError& error)
 void StarredFilesTab::showLoadingView()
 {
     mStack->setCurrentIndex(INDEX_LOADING_VIEW);
+}
+
+void StarredFilesTab::startRefresh()
+{
+    refresh_timer_->start(kRefreshInterval);
+}
+
+void StarredFilesTab::stopRefresh()
+{
+    refresh_timer_->stop();
 }

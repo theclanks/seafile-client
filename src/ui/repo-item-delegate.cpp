@@ -42,7 +42,7 @@ const int kRepoCategoryIndicatorHeight = 16;
 const int kMarginBetweenIndicatorAndName = 5;
 
 const int kMarginBetweenRepoIconAndName = 10;
-const int kMarginBetweenRepoNameAndStatus = 5;
+const int kMarginBetweenRepoNameAndStatus = 10;
 
 const char *kRepoNameColor = "#3F3F3F";
 const char *kRepoNameColorHighlighted = "#544D49";
@@ -55,10 +55,10 @@ const char *kRepoItemBackgroundColor = "white";
 const char *kRepoItemBackgroundColorHighlighted = "#F9E0C7";
 
 const char *kRepoCategoryColor = "#3F3F3F";
-const char *kRepoCategoryColorHighlighted = "#FAF5FB";
+//const char *kRepoCategoryColorHighlighted = "#FAF5FB";
 
 const char *kRepoCategoryBackgroundColor = "white";
-const char *kRepoCategoryBackgroundColorHighlighted = "#EF7544";
+//const char *kRepoCategoryBackgroundColorHighlighted = "#EF7544";
 
 
 } // namespace
@@ -162,9 +162,7 @@ void RepoItemDelegate::paintRepoItem(QPainter *painter,
     repo_icon_pos += option.rect.topLeft();
     painter->save();
 
-    QPixmap repo_icon(::getIconPathByDPI(repo.encrypted
-                                         ? ":/images/encrypted-repo.png"
-                                         : ":/images/repo.png"));
+    QPixmap repo_icon(repo.getPixmap());
 
     QRect repo_icon_rect(repo_icon_pos, QSize(kRepoIconWidth, kRepoIconHeight));
     painter->drawPixmap(repo_icon_rect, repo_icon);
@@ -173,17 +171,20 @@ void RepoItemDelegate::paintRepoItem(QPainter *painter,
     // Paint repo name
     painter->save();
     QPoint repo_name_pos = repo_icon_pos + QPoint(kRepoIconWidth + kMarginBetweenRepoIconAndName, 0);
-    QRect repo_name_rect(repo_name_pos, QSize(kRepoNameWidth, kRepoNameHeight));
+    int repo_name_width = option.rect.width() - kRepoIconWidth - kMarginBetweenRepoIconAndName
+        - kRepoStatusIconWidth  - kMarginBetweenRepoNameAndStatus
+        - kPadding * 2 - kMarginLeft - kMarginRight;
+    QRect repo_name_rect(repo_name_pos, QSize(repo_name_width, kRepoNameHeight));
     painter->setPen(QColor(selected ? kRepoNameColorHighlighted : kRepoNameColor));
     painter->setFont(changeFontSize(painter->font(), kRepoNameFontSize));
     painter->drawText(repo_name_rect,
                       Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap,
-                      fitTextToWidth(repo.name, option.font, kRepoNameWidth),
+                      fitTextToWidth(repo.name, option.font, repo_name_width),
                       &repo_name_rect);
 
     // Paint repo description
     QPoint repo_desc_pos = repo_name_rect.bottomLeft() + QPoint(0, 5);
-    QRect repo_desc_rect(repo_desc_pos, QSize(kRepoNameWidth, kRepoNameHeight));
+    QRect repo_desc_rect(repo_desc_pos, QSize(repo_name_width, kRepoNameHeight));
     painter->setFont(changeFontSize(painter->font(), kTimestampFontSize));
     painter->setPen(QColor(selected ? kTimestampColorHighlighted : kTimestampColor));
 
@@ -212,7 +213,7 @@ void RepoItemDelegate::paintRepoItem(QPainter *painter,
 
     painter->drawText(repo_desc_rect,
                       Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap,
-                      fitTextToWidth(description, option.font, kRepoNameWidth),
+                      fitTextToWidth(description, option.font, repo_name_width),
                       &repo_desc_rect);
     painter->restore();
 
@@ -246,7 +247,7 @@ void RepoItemDelegate::paintRepoCategoryItem(QPainter *painter,
                                              const RepoCategoryItem *item) const
 {
     QBrush backBrush;
-    bool hover = false;
+    //bool hover = false;
     bool selected = false;
 
     backBrush = QColor(kRepoCategoryBackgroundColor);
@@ -267,8 +268,13 @@ void RepoItemDelegate::paintRepoCategoryItem(QPainter *painter,
                          QSize(kRepoCategoryIndicatorWidth, kRepoCategoryIndicatorHeight));
     painter->save();
     QString icon_path = QString(":/images/caret-%1.png").arg(expanded ? "down" : "right");
+    QString icon_2x_path = QString(":/images/caret-%1@2x.png").arg(expanded ? "down" : "right");
+    QIcon icon = QIcon();
+    icon.addFile(icon_path, QSize(kRepoCategoryIndicatorWidth, kRepoCategoryIndicatorHeight));
+    icon.addFile(icon_2x_path, QSize(kRepoCategoryIndicatorWidth * 2, kRepoCategoryIndicatorHeight * 2));
+
     painter->drawPixmap(indicator_rect,
-                        QPixmap(::getIconPathByDPI(icon_path)));
+                       icon.pixmap(QSize(kRepoCategoryIndicatorWidth, kRepoCategoryIndicatorHeight)));
     painter->restore();
 
     // Paint category name

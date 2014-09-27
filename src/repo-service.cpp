@@ -44,13 +44,16 @@ void RepoService::start()
     refresh_timer_->start(kRefreshReposInterval);
 }
 
+void RepoService::stop()
+{
+    refresh_timer_->stop();
+}
+
 void RepoService::refresh()
 {
     if (in_refresh_) {
         return;
     }
-
-    AccountManager *account_mgr = seafApplet->accountManager();
 
     const std::vector<Account>& accounts = seafApplet->accountManager()->accounts();
     if (accounts.empty()) {

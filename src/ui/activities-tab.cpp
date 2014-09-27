@@ -8,7 +8,7 @@
 #include "seafile-applet.h"
 #include "account-mgr.h"
 #include "events-list-view.h"
-#include "utils/widget-utils.h"
+#include "loading-view.h"
 #include "events-service.h"
 #include "avatar-service.h"
 #include "api/api-error.h"
@@ -17,11 +17,11 @@
 
 namespace {
 
-const int kRefreshInterval = 1000 * 60 * 5; // 5 min
+//const int kRefreshInterval = 1000 * 60 * 5; // 5 min
 const char *kLoadingFailedLabelName = "loadingFailedText";
-const char *kEmptyViewLabelName = "emptyText";
-const char *kAuthHeader = "Authorization";
-const char *kActivitiesUrl = "/api2/html/events/";
+//const char *kEmptyViewLabelName = "emptyText";
+//const char *kAuthHeader = "Authorization";
+//const char *kActivitiesUrl = "/api2/html/events/";
 
 enum {
     INDEX_LOADING_VIEW = 0,
@@ -109,14 +109,14 @@ void ActivitiesTab::createEventsView()
     load_more_btn_->setVisible(false);
     layout->addWidget(load_more_btn_);
 
-    events_loading_view_ = newLoadingView();
+    events_loading_view_ = new LoadingView;
     events_loading_view_->setVisible(false);
     layout->addWidget(events_loading_view_);
 }
 
 void ActivitiesTab::createLoadingView()
 {
-    loading_view_ = ::newLoadingView();
+    loading_view_ = new LoadingView;
 }
 
 void ActivitiesTab::createLoadingFailedView()
@@ -156,4 +156,14 @@ void ActivitiesTab::refreshFailed(const ApiError& error)
     loading_failed_text_->setText(text);
 
     mStack->setCurrentIndex(INDEX_LOADING_FAILED_VIEW);
+}
+
+void ActivitiesTab::startRefresh()
+{
+    EventsService::instance()->start();
+}
+
+void ActivitiesTab::stopRefresh()
+{
+    EventsService::instance()->stop();
 }
